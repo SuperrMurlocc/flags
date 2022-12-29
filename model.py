@@ -1,40 +1,87 @@
 import tensorflow as tf
-from tensorflow.keras.preprocessing import image_dataset_from_directory
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+import matplotlib.pyplot as plt
 
+BATCH_SIZE = 32
+IMG_WIDTH = 300
+IMG_HEIGHT = 200
+TF_MODEL_FILE_PATH = 'models/model.tflite'
 
-dataset: tf.data.Dataset = image_dataset_from_directory(
-    'flags',
-    labels='inferred',
-    validation_split=0.2,
-    subset='training',
-    seed=123
-)
+if __name__ == '__main__':
+    train_ds: tf.data.Dataset = tf.keras.utils.image_dataset_from_directory(
+        'flags',
+        validation_split=0.2,
+        seed=123,
+        subset='training',
+        batch_size=BATCH_SIZE,
+        image_size=(IMG_HEIGHT, IMG_WIDTH)
+    )
 
-test_dataset: tf.data.Dataset = image_dataset_from_directory(
-    'flags',
-    labels='inferred',
-    validation_split=0.2,
-    subset='validation',
-    seed=123
-)
+    class_names = train_ds.class_names
 
-model = Sequential()
-model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(256, 256, 3)))
-model.add(MaxPooling2D((2, 2)))
-model.add(Conv2D(64, (3, 3), activation='relu'))
-model.add(MaxPooling2D((2, 2)))
-model.add(Conv2D(64, (3, 3), activation='relu'))
-model.add(Flatten())
-model.add(Dense(64, activation='relu'))
-model.add(Dense(10, activation='softmax'))
+    val_ds: tf.data.Dataset = tf.keras.utils.image_dataset_from_directory(
+        'flags',
+        validation_split=0.2,
+        seed=123,
+        subset='validation',
+        batch_size=BATCH_SIZE,
+        image_size=(IMG_HEIGHT, IMG_WIDTH)
+    )
 
-model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    AUTOTUNE = tf.data.AUTOTUNE
 
-model.fit(dataset, epochs=10)
+    train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+    val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
-test_loss, test_acc = model.evaluate(test_dataset)
+    layers = tf.keras.layers
 
-model.save('models/model_02.h5')
+    data_augmentation = tf.keras.Sequential([layers.RandomRotation(0.1), layers.RandomZoom(0.1)])
+
+    model = tf.keras.models.Sequential([
+        data_augmentation,
+        layers.Rescaling(1./255, input_shape=(IMG_HEIGHT, IMG_WIDTH, 3)),
+        layers.Conv2D(16, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Conv2D(32, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Conv2D(64, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Dropout(0.2),
+        layers.Flatten(),
+        layers.Dense(128, activation='relu'),
+        layers.Dense(len(class_names))
+    ])
+
+    model.compile(optimizer='adam', loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), metrics=['accuracy'])
+
+    epochs = 10
+    history = model.fit(train_ds, validation_data=val_ds, epochs=epochs)
+
+    acc = history.history['accuracy']
+    val_acc = history.history['val_accuracy']
+
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+
+    epochs_range = range(epochs)
+
+    plt.figure(figsize=(8, 8))
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs_range, acc, label='Training Accuracy')
+    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+    plt.legend(loc='lower right')
+    plt.title('Training and Validation Accuracy')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs_range, loss, label='Training Loss')
+    plt.plot(epochs_range, val_loss, label='Validation Loss')
+    plt.legend(loc='upper right')
+    plt.title('Training and Validation Loss')
+    plt.show()
+
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    tflite_model = converter.convert()
+
+    with open(TF_MODEL_FILE_PATH, 'wb') as f:
+        f.write(tflite_model)
+
 
