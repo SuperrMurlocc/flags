@@ -1,5 +1,5 @@
 import tensorflow as tf
-import numpy as np
+from tensorflow.python.ops.numpy_ops import np_config
 from model import IMG_HEIGHT, IMG_WIDTH, TF_MODEL_FILE_PATH
 from countries import get_countries
 
@@ -19,10 +19,14 @@ def predict(classify_lite, img_array):
     class_names = sorted(get_countries())
     predictions_lite = classify_lite(sequential_input=img_array)['dense_1']
     score_lite = tf.nn.softmax(predictions_lite)
-    return f"{class_names[np.argmax(score_lite)]} : {100 * np.max(score_lite):.2f}%"
+    np_config.enable_numpy_behavior()
+    pairs = sorted(list(filter(lambda pair: pair[1] >= 0.2, zip(class_names, score_lite.tolist()[0]))), key=lambda pair: pair[1], reverse=True)
+    pairs = pairs[:min(3, len(pairs))]
+    scores = {class_name: round(100 * score, 2) for class_name, score in pairs}
+    return scores
 
 
 if __name__ == '__main__':
     classify_lite = get_classify_lite()
-    img_array = get_img_array('tmp/tmp.png')
+    img_array = get_img_array('test_images/real_poland.jpeg')
     print(predict(classify_lite, img_array))
