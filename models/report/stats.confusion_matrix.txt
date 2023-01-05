@@ -1,0 +1,7 @@
+accuracy: 0.9448868778280543
+mean_recall: 0.9454433066849691
+worst_by_recall: Latvia
+worst_by_recall_confused_most_often_with: Denmark
+mean_precision: 0.9472079284436392
+worst_by_precision: Latvia
+worst_by_precision_confused_most_often_with: Denmark

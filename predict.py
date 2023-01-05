@@ -7,7 +7,7 @@ from countries import get_countries
 def get_img_array(img_path):
     img = tf.keras.utils.load_img(img_path, target_size=(IMG_HEIGHT, IMG_WIDTH))
     img_array = tf.keras.utils.img_to_array(img)
-    return tf.expand_dims(img_array, 0)  # Create a batch
+    return tf.expand_dims(img_array, 0)
 
 
 def get_classify_lite():

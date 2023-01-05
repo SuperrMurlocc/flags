@@ -1,10 +1,12 @@
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import visualkeras
 
 BATCH_SIZE = 32
 IMG_WIDTH = 300
 IMG_HEIGHT = 200
 TF_MODEL_FILE_PATH = 'models/model.tflite'
+KERAS_MODEL_FILE_PATH = 'models/model.h5'
 
 if __name__ == '__main__':
     train_ds: tf.data.Dataset = tf.keras.utils.image_dataset_from_directory(
@@ -53,8 +55,12 @@ if __name__ == '__main__':
 
     model.compile(optimizer='adam', loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), metrics=['accuracy'])
 
-    epochs = 10
+    epochs = 15
     history = model.fit(train_ds, validation_data=val_ds, epochs=epochs)
+
+    model.summary()
+    tf.keras.utils.plot_model(model, to_file="models/report/model.png", show_shapes=True)
+    visualkeras.layered_view(model, to_file="models/report/model_layers.png", legend=True)
 
     acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
@@ -81,6 +87,7 @@ if __name__ == '__main__':
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     tflite_model = converter.convert()
 
+    model.save(KERAS_MODEL_FILE_PATH)
     with open(TF_MODEL_FILE_PATH, 'wb') as f:
         f.write(tflite_model)
 
