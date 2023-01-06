@@ -48,13 +48,13 @@ def get_confusion_matrix(model):
 
 def get_stats_from_confusion_matrix(confusion_matrix):
     total_samples = tf.reduce_sum(confusion_matrix)
-    true_positives = tf.linalg.trace(confusion_matrix)
-    row_sums = tf.reduce_sum(confusion_matrix, axis=1)
+    true_positives = tf.linalg.tensor_diag_part(confusion_matrix)
     col_sums = tf.reduce_sum(confusion_matrix, axis=0)
+    row_sums = tf.reduce_sum(confusion_matrix, axis=1)
 
+    tf_accuracy = true_positives / total_samples
     tf_precision = true_positives / col_sums
     tf_recall = true_positives / row_sums
-    tf_accuracy = true_positives / total_samples
     tf_f1_score = 2 * (tf_precision * tf_recall) / (tf_precision + tf_recall)
 
     return {
@@ -104,16 +104,16 @@ def plot_roc_for_given_class(model, class_name):
 if __name__ == '__main__':
     model = tf.keras.models.load_model(KERAS_MODEL_FILE_PATH)
 
-    cross_validation_accuracy = cross_validation(model)
-    with open('models/report/stats.cross_validation_accuracy.txt', 'w') as file:
-        file.write(str(cross_validation_accuracy))
+    # cross_validation_accuracy = cross_validation(model)
+    # with open('models/report/stats.cross_validation_accuracy.txt', 'w') as file:
+    #     file.write(str(cross_validation_accuracy))
+    #
+    # print(cross_validation_accuracy)
+    #
+    # stats_from_confusion_matrix = '\n'.join([f"{k}: {v}" for k, v in get_stats_from_confusion_matrix(cm).items()])
+    # with open('models/report/stats.confusion_matrix.txt', 'w') as file:
+    #     file.write(stats_from_confusion_matrix)
+    #
+    # print(stats_from_confusion_matrix)
 
-    print(cross_validation_accuracy)
-
-    stats_from_confusion_matrix = '\n'.join([f"{k}: {v}" for k, v in get_stats_from_confusion_matrix(cm).items()])
-    with open('models/report/stats.confusion_matrix.txt', 'w') as file:
-        file.write(stats_from_confusion_matrix)
-
-    print(stats_from_confusion_matrix)
-
-
+    plot_roc_for_given_class(model, "Czech Republic")
