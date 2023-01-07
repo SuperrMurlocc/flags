@@ -1,11 +1,9 @@
 import tensorflow as tf
 from model import KERAS_MODEL_FILE_PATH, BATCH_SIZE, IMG_HEIGHT, IMG_WIDTH
 from countries import get_countries
-from models.report.confusion_matrix import confusion_matrix as cm
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import LabelBinarizer
-from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.metrics import roc_curve, roc_auc_score
 
 
 def cross_validation(model) -> float:
